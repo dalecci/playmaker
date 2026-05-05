@@ -694,6 +694,7 @@
         <span class="switch"></span>
         Show defenders (X1–X5)
       </label>
+      <button class="ghost" id="exportBtn" style="width:100%; justify-content:center;">⬇ Export Video</button>
     </div>
 
     <div class="section">
@@ -1194,6 +1195,115 @@
     return out;
   }
 
+  // ---------- Video Export ----------
+  // CSS injected into the serialized SVG so class-based styles resolve when
+  // rendered as a standalone image (page stylesheet doesn't follow the blob URL).
+  const EXPORT_CSS = `
+    .player-circle.offense{fill:url(#offenseGrad);stroke:rgba(255,255,255,.85);stroke-width:1.5;filter:drop-shadow(0 2px 4px rgba(0,0,0,.5))}
+    .player-circle.defense{fill:url(#defenseGrad);stroke:rgba(255,255,255,.85);stroke-width:1.5;filter:drop-shadow(0 2px 4px rgba(0,0,0,.5))}
+    .player-label{fill:#fff;font-size:13px;font-weight:700;text-anchor:middle;dominant-baseline:central}
+    .ball{fill:url(#ballGrad);stroke:#5a3a10;stroke-width:1.2;filter:drop-shadow(0 2px 4px rgba(0,0,0,.5))}
+    .player.has-ball .player-circle{stroke:#d4af37;stroke-width:2.4}
+  `;
+
+  function paintSvgToCanvas(ctx, cw, ch) {
+    const el = document.getElementById('court');
+    const cloned = el.cloneNode(true);
+    const s = document.createElementNS('http://www.w3.org/2000/svg', 'style');
+    s.textContent = EXPORT_CSS;
+    cloned.insertBefore(s, cloned.firstChild);
+    const xml = new XMLSerializer().serializeToString(cloned);
+    const blob = new Blob([xml], { type: 'image/svg+xml;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const img = new Image(cw, ch);
+    img.onload = () => { ctx.clearRect(0, 0, cw, ch); ctx.drawImage(img, 0, 0, cw, ch); URL.revokeObjectURL(url); };
+    img.onerror = () => URL.revokeObjectURL(url);
+    img.src = url;
+  }
+
+  async function exportVideo() {
+    if (state.steps.length < 2) { toast('Need at least 2 steps to export', 'error'); return; }
+    if (state.isPlaying) stopPlay();
+
+    const btn = document.getElementById('exportBtn');
+    btn.disabled = true;
+    btn.textContent = '⏳ Recording…';
+
+    const playName = (document.getElementById('title').value || 'play')
+      .replace(/[^a-z0-9]/gi, '-').toLowerCase() || 'play';
+
+    // Canvas: maintain viewBox 500×470 ratio at 1280px wide
+    const CW = 1280, CH = Math.round(1280 * 470 / 500);
+    const canvas = document.createElement('canvas');
+    canvas.width = CW; canvas.height = CH;
+    const ctx = canvas.getContext('2d');
+
+    const mimeType = ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm']
+      .find(t => { try { return MediaRecorder.isTypeSupported(t); } catch { return false; } }) || 'video/webm';
+
+    const stream = canvas.captureStream(30);
+    const recorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 8_000_000 });
+    const chunks = [];
+    recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
+    recorder.onstop = () => {
+      const blob = new Blob(chunks, { type: mimeType.split(';')[0] });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = playName + '.webm';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
+      btn.disabled = false; btn.textContent = '⬇ Export Video';
+      toast('Video saved!', 'success');
+      loadStep(0);
+    };
+
+    const segDuration = 1200 / state.speed;
+    const totalDuration = (state.steps.length - 1) * segDuration;
+    const HOLD_MS = 1200; // pause on first/last frame so it reads clearly
+
+    // Initial frame: step 0, paths hidden (clean animation look)
+    loadStep(0);
+    renderEntities();
+    pathsGroup.innerHTML = '';
+    paintSvgToCanvas(ctx, CW, CH);
+    recorder.start();
+
+    // Hold first frame
+    await new Promise(r => setTimeout(r, HOLD_MS));
+
+    // Animate in real time via RAF (same logic as play())
+    await new Promise(resolve => {
+      const start = performance.now();
+      function frame() {
+        const elapsed = Math.min(performance.now() - start, totalDuration);
+        const segIdx = Math.min(Math.floor(elapsed / segDuration), state.steps.length - 2);
+        const segT = Math.min(1, (elapsed - segIdx * segDuration) / segDuration);
+        const tEased = easeInOut(segT);
+        const fromStep = state.steps[segIdx];
+        const toStep   = state.steps[segIdx + 1];
+        const fromPos  = fromStep.positions || fromStep;
+        const toPos    = toStep.positions   || toStep;
+        const paths    = toStep.paths || {};
+        Object.keys(toPos).forEach(id => {
+          if (!state.entities[id]) return;
+          const path = paths[id];
+          const p = (path && path.length >= 2) ? pathPosition(path, tEased) : null;
+          state.entities[id].x = p ? p.x : lerp(fromPos[id].x, toPos[id].x, tEased);
+          state.entities[id].y = p ? p.y : lerp(fromPos[id].y, toPos[id].y, tEased);
+        });
+        renderEntities();
+        paintSvgToCanvas(ctx, CW, CH);
+        if (elapsed < totalDuration) { rafId = requestAnimationFrame(frame); }
+        else { rafId = null; resolve(); }
+      }
+      rafId = requestAnimationFrame(frame);
+    });
+
+    // Hold last frame, then stop
+    await new Promise(r => setTimeout(r, HOLD_MS));
+    recorder.stop();
+  }
+
   // ---------- Playback ----------
   let rafId = null;
   function setPlayBtn(playing) {
@@ -1480,6 +1590,7 @@
   // ---------- Wire up ----------
   document.getElementById('captureBtn').addEventListener('click', captureStep);
   document.getElementById('undoBtn').addEventListener('click', undo);
+  document.getElementById('exportBtn').addEventListener('click', exportVideo);
   document.getElementById('playBtn').addEventListener('click', () => {
     if (state.isPlaying) stopPlay(); else play();
   });
