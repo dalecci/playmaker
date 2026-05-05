@@ -548,6 +548,27 @@
   .toast.error { border-color: rgba(239,68,68,0.5); color: #fca5a5; }
   .toast.success { border-color: rgba(74,222,128,0.5); color: #86efac; }
 
+  /* ---------- GitHub Sync ---------- */
+  .sync-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--muted-2); display: inline-block;
+    flex-shrink: 0;
+    transition: background 0.3s;
+  }
+  .sync-dot.ok  { background: var(--ok); box-shadow: 0 0 6px var(--ok); }
+  .sync-dot.err { background: var(--danger); }
+  .sync-status {
+    font-size: 11px; color: var(--muted);
+    text-align: center; min-height: 16px;
+  }
+  .token-link {
+    font-size: 11px; color: var(--gold);
+    text-decoration: none; display: block;
+    text-align: center; margin-top: 6px;
+    letter-spacing: 0.02em;
+  }
+  .token-link:hover { text-decoration: underline; }
+
   /* ---------- Footer ---------- */
   footer {
     padding: 10px 22px;
@@ -703,6 +724,35 @@
         <button class="small-btn" id="newFolderBtn" title="New folder">＋</button>
       </div>
       <div class="playbook" id="playbook"></div>
+    </div>
+
+    <div class="section" id="syncSection">
+      <div class="section-title">
+        <span>GitHub Sync</span>
+        <span id="syncDot" class="sync-dot"></span>
+      </div>
+
+      <!-- Shown when no token is saved -->
+      <div id="tokenSetup">
+        <div class="hint">
+          <b>One-time setup.</b> Create a fine-grained GitHub token with <b>Contents: Read &amp; Write</b> for the <b>playmaker</b> repo, paste it below. Stays on this device only.
+        </div>
+        <div class="row" style="margin-top:8px">
+          <input type="password" id="tokenInput" placeholder="github_pat_…" autocomplete="off" style="font-family:monospace;font-size:12px;" />
+          <button class="primary" id="saveTokenBtn">Save</button>
+        </div>
+        <a href="https://github.com/settings/tokens?type=beta" target="_blank" class="token-link">Create token on GitHub →</a>
+      </div>
+
+      <!-- Shown when token is saved -->
+      <div id="syncControls" style="display:none">
+        <div class="row">
+          <button class="primary" id="syncPushBtn" style="flex:1;justify-content:center;">↑ Push to GitHub</button>
+          <button class="ghost" id="syncPullBtn">↓ Pull</button>
+          <button class="ghost" id="clearTokenBtn" title="Remove stored token" style="padding:9px 10px;">🔑</button>
+        </div>
+        <div id="syncStatus" class="sync-status" style="margin-top:6px"></div>
+      </div>
     </div>
 
     <div class="section">
@@ -1629,11 +1679,144 @@
     }
   });
 
+  // ---------- GitHub Sync ----------
+  const GH_OWNER     = 'dalecci';
+  const GH_REPO      = 'playmaker';
+  const GH_FILE      = 'plays.json';
+  const GH_TOKEN_KEY = 'playmaker_gh_token';
+  const GH_SYNC_KEY  = 'playmaker_last_sync';
+  const RAW_URL = `https://raw.githubusercontent.com/${GH_OWNER}/${GH_REPO}/main/${GH_FILE}`;
+  const API_URL = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${GH_FILE}`;
+
+  function ghToken() { return localStorage.getItem(GH_TOKEN_KEY) || ''; }
+
+  // UTF-8 safe base64 (btoa alone breaks on non-ASCII play names)
+  function toB64(str) { return btoa(unescape(encodeURIComponent(str))); }
+
+  function setSyncDot(state) {
+    const d = document.getElementById('syncDot');
+    if (d) d.className = 'sync-dot' + (state ? ' ' + state : '');
+  }
+
+  function updateSyncStatus(msg) {
+    const el = document.getElementById('syncStatus');
+    if (!el) return;
+    if (msg) { el.textContent = msg; return; }
+    const t = localStorage.getItem(GH_SYNC_KEY);
+    el.textContent = t
+      ? 'Last sync: ' + new Date(+t).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })
+      : 'Not synced yet';
+  }
+
+  function updateSyncUI() {
+    const hasToken = !!ghToken();
+    document.getElementById('tokenSetup').style.display    = hasToken ? 'none' : '';
+    document.getElementById('syncControls').style.display  = hasToken ? ''     : 'none';
+    updateSyncStatus();
+  }
+
+  async function getFileSHA() {
+    const headers = {
+      'Accept': 'application/vnd.github+json',
+      'X-GitHub-Api-Version': '2022-11-28'
+    };
+    const tok = ghToken();
+    if (tok) headers['Authorization'] = 'Bearer ' + tok;
+    const res = await fetch(API_URL, { headers });
+    if (res.status === 404) return null;
+    if (!res.ok) throw new Error('GitHub API ' + res.status);
+    return (await res.json()).sha;
+  }
+
+  async function pushToGitHub() {
+    const tok = ghToken();
+    if (!tok) { updateSyncUI(); return; }
+    const btn = document.getElementById('syncPushBtn');
+    btn.disabled = true; btn.textContent = '↑ Pushing…';
+    setSyncDot('');
+    try {
+      const content = toB64(JSON.stringify(getPlays(), null, 2));
+      const sha     = await getFileSHA();
+      const body    = { message: 'Sync playbook', content };
+      if (sha) body.sha = sha;
+      const res = await fetch(API_URL, {
+        method: 'PUT',
+        headers: {
+          'Authorization': 'Bearer ' + tok,
+          'Content-Type': 'application/json',
+          'Accept': 'application/vnd.github+json',
+          'X-GitHub-Api-Version': '2022-11-28'
+        },
+        body: JSON.stringify(body)
+      });
+      if (!res.ok) { const e = await res.json(); throw new Error(e.message || 'HTTP ' + res.status); }
+      localStorage.setItem(GH_SYNC_KEY, Date.now());
+      setSyncDot('ok');
+      updateSyncStatus();
+      toast('Pushed to GitHub ✓', 'success');
+    } catch (err) {
+      setSyncDot('err');
+      updateSyncStatus('Push failed: ' + err.message);
+      toast('Push failed — check your token', 'error');
+    } finally {
+      btn.disabled = false; btn.textContent = '↑ Push to GitHub';
+    }
+  }
+
+  async function pullFromGitHub(silent) {
+    const btn = document.getElementById('syncPullBtn');
+    if (btn && !silent) { btn.disabled = true; btn.textContent = '↓ Pulling…'; }
+    try {
+      const res = await fetch(RAW_URL + '?t=' + Date.now()); // cache-bust
+      if (res.status === 404) {
+        if (!silent) toast('Nothing on GitHub yet — push first', 'error');
+        return;
+      }
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const remote = await res.json();
+      setPlays(remote);
+      refreshFolderDropdown();
+      refreshPlaybook();
+      localStorage.setItem(GH_SYNC_KEY, Date.now());
+      setSyncDot('ok');
+      updateSyncStatus();
+      if (!silent) toast('Pulled from GitHub ✓', 'success');
+    } catch (err) {
+      if (!silent) {
+        setSyncDot('err');
+        updateSyncStatus('Pull failed: ' + err.message);
+        toast('Pull failed', 'error');
+      }
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = '↓ Pull'; }
+    }
+  }
+
+  // Wire up sync buttons
+  document.getElementById('saveTokenBtn').addEventListener('click', () => {
+    const tok = document.getElementById('tokenInput').value.trim();
+    if (!tok) return;
+    localStorage.setItem(GH_TOKEN_KEY, tok);
+    document.getElementById('tokenInput').value = '';
+    updateSyncUI();
+    toast('Token saved — you can now push', 'success');
+  });
+  document.getElementById('syncPushBtn').addEventListener('click', pushToGitHub);
+  document.getElementById('syncPullBtn').addEventListener('click', () => pullFromGitHub(false));
+  document.getElementById('clearTokenBtn').addEventListener('click', () => {
+    if (!confirm('Remove the stored GitHub token from this device?')) return;
+    localStorage.removeItem(GH_TOKEN_KEY);
+    updateSyncUI();
+    toast('Token removed');
+  });
+
   refreshFolderDropdown();
   refreshPlaybook();
   state.ballHolder = detectBallHolder();
   renderAll();
   updateUndoBtn();
+  updateSyncUI();
+  pullFromGitHub(true); // auto-pull on every load (silent — shows plays from GitHub automatically)
 })();
 </script>
 <script>
