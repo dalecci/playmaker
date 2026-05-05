@@ -1,0 +1,1534 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+<title>Playmaker — Court Designer</title>
+<!-- PWA -->
+<link rel="manifest" href="manifest.json" />
+<meta name="theme-color" content="#d4af37" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Playmaker" />
+<link rel="apple-touch-icon" href="icon.svg" />
+<style>
+  :root {
+    /* Luxury dark palette */
+    --bg: #07090d;
+    --bg-2: #0c1018;
+    --panel: rgba(20, 26, 36, 0.72);
+    --panel-solid: #141a24;
+    --panel-2: #1a2230;
+    --border: rgba(212, 175, 55, 0.12);
+    --border-strong: rgba(212, 175, 55, 0.28);
+    --ink: #f4f1ea;
+    --ink-2: #d6d2c6;
+    --muted: #8a8f99;
+    --muted-2: #5d6573;
+
+    /* Gold accent */
+    --gold: #d4af37;
+    --gold-2: #f0c75e;
+    --gold-glow: rgba(212, 175, 55, 0.28);
+
+    /* Team colors */
+    --offense: #2c5cff;
+    --offense-2: #4d7bff;
+    --defense: #c8312c;
+    --defense-2: #e64a45;
+    --ball: #f0a830;
+
+    /* Court */
+    --wood-1: #c2884c;
+    --wood-2: #a06b34;
+    --wood-3: #8c5a28;
+    --court-line: rgba(15, 12, 6, 0.55);
+    --court-line-strong: rgba(15, 12, 6, 0.78);
+
+    --ok: #4ade80;
+    --danger: #ef4444;
+
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.4);
+    --shadow-md: 0 8px 24px rgba(0,0,0,0.5);
+    --shadow-lg: 0 24px 60px rgba(0,0,0,0.6);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; }
+  body {
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background:
+      radial-gradient(ellipse at top left, rgba(212, 175, 55, 0.08), transparent 50%),
+      radial-gradient(ellipse at bottom right, rgba(44, 92, 255, 0.06), transparent 50%),
+      var(--bg);
+    color: var(--ink);
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    letter-spacing: 0.01em;
+  }
+
+  /* ---------- Header ---------- */
+  header {
+    padding: 14px 22px;
+    background:
+      linear-gradient(180deg, rgba(20, 26, 36, 0.9), rgba(20, 26, 36, 0.65)),
+      var(--bg-2);
+    backdrop-filter: blur(12px);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+    position: relative;
+  }
+  header::after {
+    content: '';
+    position: absolute;
+    left: 0; right: 0; bottom: -1px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--gold-glow), transparent);
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .brand-mark {
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, var(--gold) 0%, #b8932d 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 900;
+    color: #0a0a0a;
+    font-size: 16px;
+    box-shadow: 0 4px 12px var(--gold-glow), inset 0 1px 0 rgba(255,255,255,0.3);
+    letter-spacing: -0.5px;
+  }
+  .brand-text { display: flex; flex-direction: column; line-height: 1.1; }
+  .brand-text h1 {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 2.4px;
+    color: var(--ink);
+    text-transform: uppercase;
+  }
+  .brand-text .sub {
+    color: var(--gold);
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    font-weight: 600;
+    margin-top: 2px;
+  }
+
+  /* ---------- Layout ---------- */
+  main {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr 360px;
+    gap: 18px;
+    padding: 18px;
+    min-height: 0;
+  }
+  @media (max-width: 980px) {
+    main { grid-template-columns: 1fr; padding: 12px; gap: 12px; }
+  }
+
+  /* ---------- Court ---------- */
+  .court-wrap {
+    background:
+      linear-gradient(180deg, rgba(20, 26, 36, 0.85), rgba(12, 16, 24, 0.85));
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    box-shadow: var(--shadow-lg), inset 0 1px 0 rgba(255,255,255,0.04);
+    position: relative;
+  }
+  .court-wrap::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 18px;
+    background: linear-gradient(135deg, transparent 60%, var(--gold-glow) 100%);
+    opacity: 0.15;
+    pointer-events: none;
+  }
+  svg.court {
+    width: 100%;
+    height: auto;
+    max-height: 78vh;
+    border-radius: 12px;
+    user-select: none;
+    touch-action: none;
+    box-shadow:
+      0 0 0 1px rgba(212, 175, 55, 0.18),
+      0 20px 50px rgba(0,0,0,0.5),
+      inset 0 0 0 2px rgba(0,0,0,0.3);
+    display: block;
+  }
+
+  /* ---------- Panel ---------- */
+  .panel {
+    background: var(--panel);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    overflow: auto;
+    box-shadow: var(--shadow-lg);
+  }
+  .section {
+    padding: 16px 18px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .section:last-child { border-bottom: none; }
+  .section-title {
+    margin: 0;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--gold);
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .section-title .muted-tag {
+    color: var(--muted-2);
+    font-size: 10px;
+    letter-spacing: 1px;
+  }
+
+  /* ---------- Inputs ---------- */
+  .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .row > * { flex-shrink: 0; }
+
+  input[type="text"], select {
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    color: var(--ink);
+    padding: 10px 12px;
+    border-radius: 10px;
+    font-size: 13px;
+    flex: 1;
+    min-width: 0;
+    font-family: inherit;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  input[type="text"]:focus, select:focus {
+    outline: none;
+    border-color: var(--border-strong);
+    box-shadow: 0 0 0 3px var(--gold-glow);
+  }
+  input[type="text"]::placeholder { color: var(--muted-2); }
+
+  button {
+    background: var(--panel-2);
+    color: var(--ink);
+    border: 1px solid var(--border);
+    padding: 9px 14px;
+    border-radius: 10px;
+    font-size: 13px;
+    cursor: pointer;
+    font-weight: 500;
+    font-family: inherit;
+    letter-spacing: 0.02em;
+    transition: all 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+  }
+  button:hover { background: #232c3d; border-color: var(--border-strong); transform: translateY(-1px); }
+  button:active { transform: translateY(0); }
+
+  button.primary {
+    background: linear-gradient(135deg, var(--gold) 0%, #b8932d 100%);
+    color: #0a0a0a;
+    border-color: transparent;
+    font-weight: 600;
+    box-shadow: 0 4px 14px var(--gold-glow), inset 0 1px 0 rgba(255,255,255,0.2);
+  }
+  button.primary:hover {
+    background: linear-gradient(135deg, var(--gold-2) 0%, var(--gold) 100%);
+    box-shadow: 0 6px 18px var(--gold-glow), inset 0 1px 0 rgba(255,255,255,0.3);
+  }
+
+  button.accent {
+    background: linear-gradient(135deg, var(--offense) 0%, #1d4ad6 100%);
+    color: #fff;
+    border-color: transparent;
+    box-shadow: 0 4px 14px rgba(44,92,255,0.25), inset 0 1px 0 rgba(255,255,255,0.15);
+  }
+  button.accent:hover { background: linear-gradient(135deg, var(--offense-2) 0%, var(--offense) 100%); }
+
+  button.ghost {
+    background: transparent;
+    border-color: var(--border);
+  }
+  button.ghost:hover { background: rgba(255,255,255,0.04); }
+
+  button:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; }
+
+  /* ---------- Step list ---------- */
+  .steps {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 220px;
+    overflow-y: auto;
+    padding-right: 4px;
+  }
+  .steps::-webkit-scrollbar, .playbook::-webkit-scrollbar { width: 6px; }
+  .steps::-webkit-scrollbar-thumb, .playbook::-webkit-scrollbar-thumb {
+    background: rgba(212,175,55,0.18);
+    border-radius: 3px;
+  }
+  .step-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 13px;
+    transition: all 0.15s;
+  }
+  .step-item:hover { border-color: var(--border-strong); }
+  .step-item.active {
+    border-color: var(--gold);
+    background: linear-gradient(135deg, rgba(212,175,55,0.10), rgba(212,175,55,0.03));
+    box-shadow: inset 0 0 0 1px rgba(212,175,55,0.25);
+  }
+  .step-item .step-num {
+    color: var(--gold);
+    font-weight: 600;
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+  }
+  .step-item .step-info {
+    color: var(--muted);
+    font-size: 11px;
+  }
+  .step-item .x {
+    color: var(--muted-2);
+    background: transparent;
+    border: none;
+    font-size: 18px;
+    cursor: pointer;
+    padding: 0 6px;
+    line-height: 1;
+    transition: color 0.15s;
+  }
+  .step-item .x:hover { color: var(--danger); }
+  .empty-hint {
+    color: var(--muted-2);
+    font-size: 12px;
+    padding: 10px 12px;
+    text-align: center;
+    font-style: italic;
+  }
+
+  /* ---------- Playbook ---------- */
+  .playbook {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: 280px;
+    overflow-y: auto;
+    padding-right: 4px;
+  }
+  .folder { display: flex; flex-direction: column; gap: 4px; }
+  .folder-header {
+    font-size: 10px;
+    color: var(--ink-2);
+    text-transform: uppercase;
+    letter-spacing: 1.6px;
+    padding: 4px 4px 4px 6px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: 600;
+  }
+  .folder-header .folder-actions { display: flex; gap: 2px; }
+  .folder-header .count {
+    color: var(--gold);
+    margin-left: 6px;
+    font-weight: 500;
+  }
+  .folder-empty {
+    font-size: 11px;
+    color: var(--muted-2);
+    padding: 4px 12px 6px;
+    font-style: italic;
+  }
+  .play-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 9px 12px;
+    background: var(--panel-2);
+    border-radius: 10px;
+    font-size: 13px;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    transition: all 0.15s;
+  }
+  .play-item:hover { border-color: var(--border-strong); transform: translateX(2px); }
+  .play-item.active {
+    border-color: var(--gold);
+    background: linear-gradient(135deg, rgba(212,175,55,0.10), rgba(212,175,55,0.03));
+  }
+  .play-item .meta { color: var(--muted); font-size: 11px; }
+  .play-item .controls { display: flex; gap: 2px; }
+  .small-btn {
+    background: transparent;
+    border: none;
+    color: var(--muted-2);
+    font-size: 14px;
+    cursor: pointer;
+    padding: 4px 7px;
+    border-radius: 6px;
+    transition: all 0.15s;
+    line-height: 1;
+  }
+  .small-btn:hover { color: var(--ink); background: rgba(255,255,255,0.06); }
+  .small-btn.danger:hover { color: var(--danger); background: rgba(239,68,68,0.08); }
+
+  /* ---------- Toggles ---------- */
+  .toggle {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--ink-2);
+    font-size: 13px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .toggle input { display: none; }
+  .toggle .switch {
+    width: 36px; height: 20px;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    position: relative;
+    transition: background 0.2s;
+  }
+  .toggle .switch::after {
+    content: '';
+    position: absolute;
+    top: 2px; left: 2px;
+    width: 14px; height: 14px;
+    background: var(--muted);
+    border-radius: 50%;
+    transition: all 0.2s;
+  }
+  .toggle input:checked + .switch {
+    background: linear-gradient(135deg, var(--gold) 0%, #b8932d 100%);
+    border-color: transparent;
+  }
+  .toggle input:checked + .switch::after {
+    left: 18px;
+    background: #0a0a0a;
+  }
+
+  /* ---------- Speed slider ---------- */
+  .speed { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 12px; width: 100%; }
+  .speed-label-wrap {
+    color: var(--gold);
+    font-weight: 600;
+    font-size: 12px;
+    min-width: 36px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+  input[type="range"] {
+    flex: 1;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 4px;
+    background: var(--panel-2);
+    border-radius: 2px;
+    outline: none;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px; height: 16px;
+    background: linear-gradient(135deg, var(--gold) 0%, #b8932d 100%);
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 2px 6px var(--gold-glow);
+  }
+  input[type="range"]::-moz-range-thumb {
+    width: 16px; height: 16px;
+    background: linear-gradient(135deg, var(--gold) 0%, #b8932d 100%);
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+  }
+
+  /* ---------- Hint ---------- */
+  .hint {
+    color: var(--muted);
+    font-size: 11px;
+    line-height: 1.55;
+    background: rgba(212,175,55,0.04);
+    border: 1px solid var(--border);
+    padding: 11px 13px;
+    border-radius: 10px;
+  }
+  .hint b { color: var(--ink-2); font-weight: 600; }
+  .hint .step-num {
+    color: var(--gold);
+    font-weight: 700;
+  }
+
+  /* ---------- SVG entity styles ---------- */
+  .player { cursor: grab; transition: filter 0.15s; }
+  .player:hover { filter: drop-shadow(0 0 6px var(--gold-glow)); }
+  .player:active { cursor: grabbing; }
+  .player.dragging { filter: drop-shadow(0 0 10px var(--gold-glow)); }
+  .player.has-ball .player-circle { stroke: var(--gold); stroke-width: 2.4; }
+  .player.has-ball { filter: drop-shadow(0 0 5px var(--gold-glow)); }
+  .player-circle.offense { fill: url(#offenseGrad); stroke: rgba(255,255,255,0.85); stroke-width: 1.5; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5)); }
+  .player-circle.defense { fill: url(#defenseGrad); stroke: rgba(255,255,255,0.85); stroke-width: 1.5; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5)); }
+  .player-label { fill: #fff; font-size: 13px; font-weight: 700; text-anchor: middle; dominant-baseline: central; pointer-events: none; letter-spacing: 0.5px; }
+  .ball { fill: url(#ballGrad); stroke: #5a3a10; stroke-width: 1.2; cursor: grab; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5)); }
+  .ball:active { cursor: grabbing; }
+
+  /* Path overlays */
+  .path-line { fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; opacity: 0.85; pointer-events: none; }
+  .path-line.offense { stroke: var(--offense-2); }
+  .path-line.defense { stroke: var(--defense-2); }
+  .path-line.ball { stroke: var(--ball); stroke-dasharray: 5 4; }
+  .path-pending { stroke-dasharray: 4 4; opacity: 0.7; }
+
+  /* ---------- Toast ---------- */
+  .toast {
+    position: fixed;
+    bottom: 28px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--panel-solid);
+    color: var(--ink);
+    padding: 11px 22px;
+    border-radius: 12px;
+    font-size: 13px;
+    font-weight: 500;
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    z-index: 100;
+    border: 1px solid var(--border-strong);
+    box-shadow: var(--shadow-lg);
+    backdrop-filter: blur(20px);
+    letter-spacing: 0.02em;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .toast.error { border-color: rgba(239,68,68,0.5); color: #fca5a5; }
+  .toast.success { border-color: rgba(74,222,128,0.5); color: #86efac; }
+
+  /* ---------- Footer ---------- */
+  footer {
+    padding: 10px 22px;
+    text-align: center;
+    color: var(--muted-2);
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    border-top: 1px solid var(--border);
+  }
+
+  /* Small-screen tweaks */
+  @media (max-width: 980px) {
+    .panel { max-height: none; }
+    svg.court { max-height: 60vh; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <div class="brand-mark">P</div>
+    <div class="brand-text">
+      <h1>Playmaker</h1>
+      <div class="sub">Court Designer · v1.0</div>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="court-wrap">
+    <svg class="court" id="court" viewBox="0 0 500 470" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <!-- Hardwood gradient -->
+        <linearGradient id="woodGrad" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#c2884c"/>
+          <stop offset="0.5" stop-color="#a06b34"/>
+          <stop offset="1" stop-color="#8c5a28"/>
+        </linearGradient>
+        <!-- Subtle wood grain pattern -->
+        <pattern id="woodGrain" x="0" y="0" width="500" height="40" patternUnits="userSpaceOnUse">
+          <rect width="500" height="40" fill="url(#woodGrad)"/>
+          <line x1="0" y1="8" x2="500" y2="8" stroke="rgba(70,40,15,0.07)" stroke-width="1"/>
+          <line x1="0" y1="22" x2="500" y2="22" stroke="rgba(70,40,15,0.05)" stroke-width="0.6"/>
+          <line x1="0" y1="33" x2="500" y2="33" stroke="rgba(70,40,15,0.06)" stroke-width="0.8"/>
+        </pattern>
+        <!-- Court vignette -->
+        <radialGradient id="courtVignette" cx="0.5" cy="0.5" r="0.7">
+          <stop offset="0.65" stop-color="rgba(0,0,0,0)"/>
+          <stop offset="1" stop-color="rgba(0,0,0,0.32)"/>
+        </radialGradient>
+        <!-- Player gradients -->
+        <radialGradient id="offenseGrad" cx="0.35" cy="0.35" r="0.7">
+          <stop offset="0" stop-color="#5a82ff"/>
+          <stop offset="1" stop-color="#1d3fb8"/>
+        </radialGradient>
+        <radialGradient id="defenseGrad" cx="0.35" cy="0.35" r="0.7">
+          <stop offset="0" stop-color="#e85a55"/>
+          <stop offset="1" stop-color="#9a2520"/>
+        </radialGradient>
+        <radialGradient id="ballGrad" cx="0.35" cy="0.35" r="0.7">
+          <stop offset="0" stop-color="#ffd680"/>
+          <stop offset="1" stop-color="#c08020"/>
+        </radialGradient>
+        <!-- Arrowhead markers -->
+        <marker id="arrowOffense" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#4d7bff"/>
+        </marker>
+        <marker id="arrowDefense" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#e64a45"/>
+        </marker>
+        <marker id="arrowBall" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#f0a830"/>
+        </marker>
+      </defs>
+
+      <!-- Hardwood floor -->
+      <rect x="0" y="0" width="500" height="470" fill="url(#woodGrain)"/>
+      <rect x="0" y="0" width="500" height="470" fill="url(#courtVignette)"/>
+
+      <!-- Court markings -->
+      <rect x="2" y="2" width="496" height="466" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="2"/>
+      <!-- Lane / key -->
+      <rect x="170" y="2" width="160" height="188" fill="rgba(0,0,0,0.06)" stroke="rgba(255,255,255,0.85)" stroke-width="2"/>
+      <!-- Free-throw circle -->
+      <path d="M 190 190 A 60 60 0 0 1 310 190" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="2"/>
+      <path d="M 190 190 A 60 60 0 0 0 310 190" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="2" stroke-dasharray="6 6"/>
+      <!-- 3-point line -->
+      <path d="M 30 2 L 30 140 A 237.5 237.5 0 0 0 470 140 L 470 2" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="2"/>
+      <!-- Backboard -->
+      <line x1="220" y1="40" x2="280" y2="40" stroke="rgba(255,255,255,0.95)" stroke-width="3" stroke-linecap="round"/>
+      <!-- Hoop -->
+      <circle cx="250" cy="55" r="9" fill="none" stroke="#ff5a1f" stroke-width="2.2"/>
+      <!-- Restricted arc -->
+      <path d="M 210 55 A 40 40 0 0 0 290 55" fill="none" stroke="rgba(255,255,255,0.6)" stroke-width="1.5"/>
+      <!-- Half-court line (near bottom edge of half-court view) -->
+      <line x1="0" y1="468" x2="500" y2="468" stroke="rgba(255,255,255,0.85)" stroke-width="2"/>
+
+      <!-- Path overlay group (behind entities) -->
+      <g id="paths"></g>
+      <!-- Entities (players + ball) rendered by JS -->
+      <g id="entities"></g>
+    </svg>
+  </div>
+
+  <aside class="panel">
+    <div class="section">
+      <div class="section-title">Play Details</div>
+      <input type="text" id="title" placeholder="Play name (e.g. Horns Flare)" autocomplete="off" />
+      <div class="row">
+        <select id="folderSelect" title="Save to folder"></select>
+        <button class="primary" id="saveBtn">Save</button>
+        <button class="ghost" id="newPlayBtn" title="Start a fresh play">＋ New</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">
+        <span>Steps</span>
+        <span class="muted-tag" id="stepsCount">0</span>
+      </div>
+      <div class="steps" id="stepsList"></div>
+      <div class="row">
+        <button class="primary" id="captureBtn" style="flex:1;">＋ Capture Step</button>
+        <button class="ghost" id="undoBtn" disabled title="Undo (Ctrl+Z)">↩ Undo</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">
+        <span>Playback</span>
+      </div>
+      <div class="row">
+        <button class="accent" id="playBtn" style="flex:1; justify-content:center;">▶ Play</button>
+        <button class="ghost" id="resetBtn" title="Reset positions to start">↺</button>
+      </div>
+      <div class="speed">
+        <span>Speed</span>
+        <input type="range" id="speedRange" min="0.5" max="2.5" step="0.1" value="1.0"/>
+        <span class="speed-label-wrap" id="speedLabel">1.0×</span>
+      </div>
+      <label class="toggle">
+        <input type="checkbox" id="defenseToggle"/>
+        <span class="switch"></span>
+        Show defenders (X1–X5)
+      </label>
+    </div>
+
+    <div class="section">
+      <div class="section-title">
+        <span>Playbook</span>
+        <button class="small-btn" id="newFolderBtn" title="New folder">＋</button>
+      </div>
+      <div class="playbook" id="playbook"></div>
+    </div>
+
+    <div class="section">
+      <div class="hint">
+        <b>How it works.</b> Drag players into a starting set, then click <b>Capture Step</b>. Drag a player along the path you want — the curve is recorded. Capture each step and press <b>Play</b> to animate. Name and save when ready.
+      </div>
+    </div>
+  </aside>
+</main>
+
+<footer>Playmaker · Works offline · No accounts</footer>
+<div class="toast" id="toast"></div>
+
+<script>
+(function () {
+  // ---------- Constants ----------
+  const STARTING = {
+    '1':  { x: 250, y: 360, label: '1', type: 'offense' },
+    '2':  { x: 430, y: 230, label: '2', type: 'offense' },
+    '3':  { x: 70,  y: 230, label: '3', type: 'offense' },
+    '4':  { x: 175, y: 175, label: '4', type: 'offense' },
+    '5':  { x: 325, y: 175, label: '5', type: 'offense' },
+    'X1': { x: 250, y: 300, label: 'X1', type: 'defense' },
+    'X2': { x: 380, y: 200, label: 'X2', type: 'defense' },
+    'X3': { x: 120, y: 200, label: 'X3', type: 'defense' },
+    'X4': { x: 200, y: 130, label: 'X4', type: 'defense' },
+    'X5': { x: 300, y: 130, label: 'X5', type: 'defense' },
+    'ball': { x: 250, y: 360, type: 'ball' }
+  };
+  const ENT_RADIUS = 17;
+  const BALL_RADIUS = 8;
+  const NS = 'http://www.w3.org/2000/svg';
+  const STORE_KEY = 'playmaker_plays_v1';
+  const FOLDERS_KEY = 'playmaker_folders_v1';
+  const DEFAULT_FOLDERS = ['Offense', 'Defense'];
+  const MAX_HISTORY = 40;
+
+  function clone(obj) { return JSON.parse(JSON.stringify(obj)); }
+  function lerp(a, b, t) { return a + (b - a) * t; }
+  function easeInOut(t) { return t < 0.5 ? 2*t*t : 1 - Math.pow(-2*t + 2, 2) / 2; }
+  function clamp(v, lo, hi) { return Math.min(hi, Math.max(lo, v)); }
+
+  // ---------- Undo history ----------
+  const history = [];
+
+  function pushHistory() {
+    history.push({
+      entities: clone(state.entities),
+      pendingPaths: clone(state.pendingPaths),
+      steps: clone(state.steps),
+      activeStep: state.activeStep,
+      ballHolder: state.ballHolder
+    });
+    if (history.length > MAX_HISTORY) history.shift();
+    updateUndoBtn();
+  }
+
+  function undo() {
+    if (history.length === 0) return;
+    const prev = history.pop();
+    state.entities = prev.entities;
+    state.pendingPaths = prev.pendingPaths;
+    state.steps = prev.steps;
+    state.activeStep = prev.activeStep;
+    state.ballHolder = prev.ballHolder;
+    renderAll();
+    updateUndoBtn();
+    toast('Undone');
+  }
+
+  function updateUndoBtn() {
+    const btn = document.getElementById('undoBtn');
+    if (btn) btn.disabled = history.length === 0;
+  }
+
+  // ---------- State ----------
+  const state = {
+    entities: clone(STARTING),
+    steps: [],            // [{ positions: {id:{x,y}}, paths: {id:[{x,y},...]} | null }]
+    activeStep: -1,
+    pendingPaths: {},     // recorded since last capture
+    showDefense: false,
+    isPlaying: false,
+    speed: 1.0,
+    ballHolder: null      // id of the player currently holding the ball, or null
+  };
+
+  // ---------- DOM refs ----------
+  const svg = document.getElementById('court');
+  const entitiesGroup = document.getElementById('entities');
+  const pathsGroup = document.getElementById('paths');
+
+  // ---------- Visibility ----------
+  function visibleIds() {
+    const ids = ['1','2','3','4','5','ball'];
+    if (state.showDefense) return ['X1','X2','X3','X4','X5'].concat(ids);
+    return ids;
+  }
+
+  // Ball "attaches" to a player when its center sits within the player's circle.
+  // Returns the closest such player id, or null if the ball is loose.
+  function detectBallHolder() {
+    const ball = state.entities.ball;
+    if (!ball) return null;
+    const threshold = ENT_RADIUS;
+    let bestId = null, bestDist = threshold;
+    visibleIds().forEach(id => {
+      if (id === 'ball') return;
+      const e = state.entities[id];
+      if (!e || e.type === 'ball') return;
+      const d = Math.hypot(ball.x - e.x, ball.y - e.y);
+      if (d < bestDist) { bestDist = d; bestId = id; }
+    });
+    return bestId;
+  }
+
+  // ---------- Render entities (sprite cache) ----------
+  const renderedEls = {};
+
+  function renderEntities() {
+    const vis = visibleIds();
+    const visSet = new Set(vis);
+
+    Object.keys(renderedEls).forEach(id => {
+      if (!visSet.has(id)) {
+        renderedEls[id].remove();
+        delete renderedEls[id];
+      }
+    });
+
+    vis.forEach(id => {
+      const e = state.entities[id];
+      if (!e) return;
+      let el = renderedEls[id];
+      if (!el) {
+        if (e.type === 'ball') {
+          el = document.createElementNS(NS, 'circle');
+          el.setAttribute('class', 'ball');
+          el.setAttribute('r', BALL_RADIUS);
+          el.dataset.id = id;
+        } else {
+          el = document.createElementNS(NS, 'g');
+          el.setAttribute('class', 'player');
+          el.dataset.id = id;
+          const c = document.createElementNS(NS, 'circle');
+          c.setAttribute('class', 'player-circle ' + e.type);
+          c.setAttribute('r', ENT_RADIUS);
+          el.appendChild(c);
+          const t = document.createElementNS(NS, 'text');
+          t.setAttribute('class', 'player-label');
+          t.textContent = e.label;
+          el.appendChild(t);
+        }
+        entitiesGroup.appendChild(el);
+        renderedEls[id] = el;
+      }
+      if (e.type === 'ball') {
+        el.setAttribute('cx', e.x);
+        el.setAttribute('cy', e.y);
+      } else {
+        const c = el.firstChild;
+        const t = el.lastChild;
+        c.setAttribute('cx', e.x);
+        c.setAttribute('cy', e.y);
+        t.setAttribute('x', e.x);
+        t.setAttribute('y', e.y);
+        el.classList.toggle('has-ball', state.ballHolder === id);
+      }
+    });
+  }
+
+  // ---------- Render motion paths ----------
+  function pathToD(points) {
+    if (!points || points.length < 2) return '';
+    let d = `M ${points[0].x} ${points[0].y}`;
+    for (let i = 1; i < points.length; i++) {
+      d += ` L ${points[i].x} ${points[i].y}`;
+    }
+    return d;
+  }
+
+  function renderPaths() {
+    pathsGroup.innerHTML = '';
+    if (state.isPlaying) return;
+
+    const vis = new Set(visibleIds());
+
+    // Show paths for the active step (motion FROM previous step TO active step).
+    if (state.activeStep > 0 && state.steps[state.activeStep]) {
+      const paths = state.steps[state.activeStep].paths || {};
+      Object.keys(paths).forEach(id => {
+        if (!vis.has(id)) return;
+        addPathArrow(paths[id], id, false);
+      });
+    }
+
+    // Show pending (live) paths recorded since last capture.
+    Object.keys(state.pendingPaths).forEach(id => {
+      if (!vis.has(id)) return;
+      addPathArrow(state.pendingPaths[id], id, true);
+    });
+  }
+
+  function addPathArrow(points, id, pending) {
+    if (!points || points.length < 2) return;
+    const ent = state.entities[id];
+    const type = ent ? ent.type : 'offense';
+    const p = document.createElementNS(NS, 'path');
+    p.setAttribute('d', pathToD(points));
+    p.setAttribute('class', 'path-line ' + type + (pending ? ' path-pending' : ''));
+    p.setAttribute('marker-end',
+      type === 'defense' ? 'url(#arrowDefense)' :
+      type === 'ball' ? 'url(#arrowBall)' : 'url(#arrowOffense)');
+    pathsGroup.appendChild(p);
+  }
+
+  // ---------- Steps UI ----------
+  function renderSteps() {
+    const list = document.getElementById('stepsList');
+    const counter = document.getElementById('stepsCount');
+    list.innerHTML = '';
+    counter.textContent = String(state.steps.length);
+
+    if (state.steps.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'empty-hint';
+      empty.textContent = 'Position your players, then capture step 1';
+      list.appendChild(empty);
+      return;
+    }
+    state.steps.forEach((st, i) => {
+      const item = document.createElement('div');
+      item.className = 'step-item' + (i === state.activeStep ? ' active' : '');
+      const left = document.createElement('div');
+      left.style.display = 'flex';
+      left.style.flexDirection = 'column';
+      left.style.gap = '2px';
+      const numEl = document.createElement('span');
+      numEl.className = 'step-num';
+      numEl.textContent = `Step ${i + 1}`;
+      const infoEl = document.createElement('span');
+      infoEl.className = 'step-info';
+      const pathCount = st.paths ? Object.keys(st.paths).length : 0;
+      infoEl.textContent = i === 0 ? 'Starting positions' :
+        pathCount > 0 ? `${pathCount} motion path${pathCount === 1 ? '' : 's'}` : 'No paths';
+      left.appendChild(numEl);
+      left.appendChild(infoEl);
+      item.appendChild(left);
+
+      const del = document.createElement('button');
+      del.className = 'x';
+      del.textContent = '×';
+      del.title = 'Delete step';
+      del.addEventListener('click', (e) => { e.stopPropagation(); deleteStep(i); });
+      item.appendChild(del);
+
+      item.addEventListener('click', () => loadStep(i));
+      list.appendChild(item);
+    });
+  }
+
+  function renderAll() { renderEntities(); renderPaths(); renderSteps(); }
+
+  // ---------- Steps ----------
+  function snapshot() {
+    const snap = {};
+    Object.keys(state.entities).forEach(id => {
+      snap[id] = { x: state.entities[id].x, y: state.entities[id].y };
+    });
+    return snap;
+  }
+
+  function pathLength(points) {
+    let d = 0;
+    for (let i = 1; i < points.length; i++) {
+      d += Math.hypot(points[i].x - points[i-1].x, points[i].y - points[i-1].y);
+    }
+    return d;
+  }
+
+  function captureStep() {
+    pushHistory();
+    const step = { positions: snapshot(), paths: null };
+    if (state.steps.length > 0) {
+      const paths = {};
+      Object.keys(state.pendingPaths).forEach(id => {
+        const p = state.pendingPaths[id];
+        if (p && p.length >= 2 && pathLength(p) > 4) paths[id] = p;
+      });
+      step.paths = paths;
+    }
+    state.steps.push(step);
+    state.pendingPaths = {};
+    state.activeStep = state.steps.length - 1;
+    renderAll();
+    const recCount = step.paths ? Object.keys(step.paths).length : 0;
+    toast(`Step ${state.steps.length} captured` + (recCount ? ` · ${recCount} path${recCount > 1 ? 's' : ''}` : ''));
+  }
+
+  function loadStep(i) {
+    const s = state.steps[i];
+    if (!s) return;
+    const positions = s.positions || s;
+    Object.keys(positions).forEach(id => {
+      if (state.entities[id]) {
+        state.entities[id].x = positions[id].x;
+        state.entities[id].y = positions[id].y;
+      }
+    });
+    state.activeStep = i;
+    state.pendingPaths = {};
+    state.ballHolder = detectBallHolder();
+    renderAll();
+  }
+
+  function deleteStep(i) {
+    pushHistory();
+    state.steps.splice(i, 1);
+    if (state.activeStep >= state.steps.length) state.activeStep = state.steps.length - 1;
+    if (state.activeStep >= 0) loadStep(state.activeStep);
+    else renderAll();
+  }
+
+  // ---------- Drag (with motion recording) ----------
+  let dragId = null;
+  let dragOffset = null;
+  let dragStartPos = null;
+  let recordingPath = null;
+  // Ball-follow: when a holder is dragged, the ball moves with them and we
+  // record a parallel path so playback animates the ball alongside.
+  let ballFollowOffset = null;
+  let ballFollowStartPos = null;
+  let ballFollowPath = null;
+  const MOVE_THRESHOLD = 2;
+
+  function svgPoint(evt) {
+    const pt = svg.createSVGPoint();
+    pt.x = evt.clientX;
+    pt.y = evt.clientY;
+    return pt.matrixTransform(svg.getScreenCTM().inverse());
+  }
+
+  svg.addEventListener('pointerdown', (e) => {
+    if (state.isPlaying) return;
+    const target = e.target.closest('[data-id]');
+    if (!target) return;
+    dragId = target.dataset.id;
+    const ent = state.entities[dragId];
+    if (!ent) return;
+    const p = svgPoint(e);
+    dragOffset = { dx: p.x - ent.x, dy: p.y - ent.y };
+    dragStartPos = { x: ent.x, y: ent.y };
+    recordingPath = null;
+
+    // Ball-follow setup: if the dragged entity currently holds the ball,
+    // capture the offset so the ball travels with them. (The ball detaches
+    // only when the user actually drags the BALL itself — see pointermove.)
+    pushHistory();  // snapshot before the drag changes anything
+
+    ballFollowOffset = null;
+    ballFollowStartPos = null;
+    ballFollowPath = null;
+    if (dragId !== 'ball' && state.ballHolder === dragId) {
+      const ball = state.entities.ball;
+      ballFollowOffset = { dx: ball.x - ent.x, dy: ball.y - ent.y };
+      ballFollowStartPos = { x: ball.x, y: ball.y };
+    }
+
+    target.classList.add('dragging');
+    if (svg.setPointerCapture) {
+      try { svg.setPointerCapture(e.pointerId); } catch {}
+    }
+    e.preventDefault();
+  });
+
+  svg.addEventListener('pointermove', (e) => {
+    if (!dragId) return;
+    const p = svgPoint(e);
+    const ent = state.entities[dragId];
+    const r = ent.type === 'ball' ? BALL_RADIUS : ENT_RADIUS;
+    const newX = clamp(p.x - dragOffset.dx, r, 500 - r);
+    const newY = clamp(p.y - dragOffset.dy, r, 470 - r);
+
+    if (!recordingPath) {
+      const moved = Math.hypot(newX - dragStartPos.x, newY - dragStartPos.y);
+      if (moved >= MOVE_THRESHOLD) {
+        recordingPath = [{ x: dragStartPos.x, y: dragStartPos.y }];
+        // Dragging the ball off its holder = a pass: detach now so the
+        // gold ring on the holder clears as the ball leaves.
+        if (dragId === 'ball' && state.ballHolder !== null) {
+          state.ballHolder = null;
+        }
+      }
+    }
+
+    ent.x = newX;
+    ent.y = newY;
+
+    // If the dragged entity holds the ball, drag the ball at the same offset.
+    if (ballFollowOffset) {
+      const ball = state.entities.ball;
+      ball.x = clamp(ent.x + ballFollowOffset.dx, BALL_RADIUS, 500 - BALL_RADIUS);
+      ball.y = clamp(ent.y + ballFollowOffset.dy, BALL_RADIUS, 470 - BALL_RADIUS);
+      if (recordingPath) {
+        if (!ballFollowPath) ballFollowPath = [{ x: ballFollowStartPos.x, y: ballFollowStartPos.y }];
+        const last = ballFollowPath[ballFollowPath.length - 1];
+        if (Math.hypot(ball.x - last.x, ball.y - last.y) > 1.5) {
+          ballFollowPath.push({ x: ball.x, y: ball.y });
+        }
+        state.pendingPaths.ball = ballFollowPath;
+      }
+    }
+
+    if (recordingPath) {
+      const last = recordingPath[recordingPath.length - 1];
+      if (Math.hypot(newX - last.x, newY - last.y) > 1.5) {
+        recordingPath.push({ x: newX, y: newY });
+      }
+      state.pendingPaths[dragId] = recordingPath;
+      renderPaths();
+    }
+    renderEntities();
+  });
+
+  function endDrag() {
+    if (!dragId) return;
+    const el = renderedEls[dragId];
+    if (el) el.classList.remove('dragging');
+    if (recordingPath && recordingPath.length >= 2) {
+      const ent = state.entities[dragId];
+      const last = recordingPath[recordingPath.length - 1];
+      if (last.x !== ent.x || last.y !== ent.y) {
+        recordingPath.push({ x: ent.x, y: ent.y });
+      }
+      state.pendingPaths[dragId] = smoothPath(recordingPath);
+    }
+
+    // Finalize the ball's parallel path when a holder was dragged.
+    if (ballFollowPath && ballFollowPath.length >= 2) {
+      const ball = state.entities.ball;
+      const last = ballFollowPath[ballFollowPath.length - 1];
+      if (last.x !== ball.x || last.y !== ball.y) {
+        ballFollowPath.push({ x: ball.x, y: ball.y });
+      }
+      state.pendingPaths.ball = smoothPath(ballFollowPath);
+    }
+
+    // If the ball itself was just dragged, see who it landed on. Snap it to
+    // that player's center so the pass "lands" cleanly, and update the path.
+    if (dragId === 'ball') {
+      const newHolder = detectBallHolder();
+      if (newHolder) {
+        const p = state.entities[newHolder];
+        const ball = state.entities.ball;
+        ball.x = p.x;
+        ball.y = p.y;
+        const path = state.pendingPaths.ball;
+        if (path && path.length > 0) {
+          path[path.length - 1] = { x: p.x, y: p.y };
+        }
+      }
+      state.ballHolder = newHolder;
+    }
+
+    renderAll();
+
+    dragId = null;
+    dragOffset = null;
+    dragStartPos = null;
+    recordingPath = null;
+    ballFollowOffset = null;
+    ballFollowStartPos = null;
+    ballFollowPath = null;
+  }
+
+  // Note: we DON'T listen on pointerleave (it caused premature drag termination).
+  svg.addEventListener('pointerup', endDrag);
+  svg.addEventListener('pointercancel', endDrag);
+
+  function smoothPath(path) {
+    if (path.length < 4) return path.slice();
+    const out = [path[0]];
+    for (let i = 1; i < path.length - 1; i++) {
+      out.push({
+        x: (path[i-1].x + path[i].x + path[i+1].x) / 3,
+        y: (path[i-1].y + path[i].y + path[i+1].y) / 3
+      });
+    }
+    out.push(path[path.length - 1]);
+    return out;
+  }
+
+  // ---------- Playback ----------
+  let rafId = null;
+  function setPlayBtn(playing) {
+    document.getElementById('playBtn').textContent = playing ? '■ Stop' : '▶ Play';
+  }
+
+  function stopPlay() {
+    state.isPlaying = false;
+    if (rafId !== null) { cancelAnimationFrame(rafId); rafId = null; }
+    setPlayBtn(false);
+    renderPaths();
+  }
+
+  function play() {
+    if (state.steps.length < 2) {
+      toast('Capture at least 2 steps first', 'error');
+      return;
+    }
+    loadStep(0);
+    state.isPlaying = true;
+    setPlayBtn(true);
+    pathsGroup.innerHTML = ''; // clear paths during playback
+    const start = performance.now();
+    const segDuration = 1200 / state.speed;
+    const total = (state.steps.length - 1) * segDuration;
+
+    function frame(now) {
+      if (!state.isPlaying) { rafId = null; setPlayBtn(false); return; }
+      const elapsed = now - start;
+      if (elapsed >= total) {
+        loadStep(state.steps.length - 1);
+        state.isPlaying = false;
+        setPlayBtn(false);
+        rafId = null;
+        return;
+      }
+      const segIdx = Math.floor(elapsed / segDuration);
+      const segT = (elapsed - segIdx * segDuration) / segDuration;
+      const tEased = easeInOut(segT);
+      const fromStep = state.steps[segIdx];
+      const toStep = state.steps[segIdx + 1];
+      const fromPos = fromStep.positions || fromStep;
+      const toPos = toStep.positions || toStep;
+      const paths = (toStep.paths) || {};
+
+      Object.keys(toPos).forEach(id => {
+        if (!state.entities[id]) return;
+        const path = paths[id];
+        let x, y;
+        if (path && path.length >= 2) {
+          const p = pathPosition(path, tEased);
+          x = p.x; y = p.y;
+        } else {
+          x = lerp(fromPos[id].x, toPos[id].x, tEased);
+          y = lerp(fromPos[id].y, toPos[id].y, tEased);
+        }
+        state.entities[id].x = x;
+        state.entities[id].y = y;
+      });
+      renderEntities();
+      rafId = requestAnimationFrame(frame);
+    }
+    rafId = requestAnimationFrame(frame);
+  }
+
+  function pathPosition(path, t) {
+    const n = path.length - 1;
+    const idx = Math.max(0, Math.min(n, t * n));
+    const i = Math.min(Math.floor(idx), n - 1);
+    const frac = idx - i;
+    return {
+      x: lerp(path[i].x, path[i+1].x, frac),
+      y: lerp(path[i].y, path[i+1].y, frac)
+    };
+  }
+
+  // ---------- Playbook (folders + plays) ----------
+  function getPlays() {
+    try { return JSON.parse(localStorage.getItem(STORE_KEY) || '{}'); }
+    catch { return {}; }
+  }
+  function setPlays(p) { localStorage.setItem(STORE_KEY, JSON.stringify(p)); }
+  function getCustomFolders() {
+    try { return JSON.parse(localStorage.getItem(FOLDERS_KEY) || '[]'); }
+    catch { return []; }
+  }
+  function setCustomFolders(arr) { localStorage.setItem(FOLDERS_KEY, JSON.stringify(arr)); }
+
+  function getFolders() {
+    const set = new Set(DEFAULT_FOLDERS);
+    getCustomFolders().forEach(f => set.add(f));
+    Object.values(getPlays()).forEach(p => { if (p.folder) set.add(p.folder); });
+    return Array.from(set);
+  }
+
+  function addFolder(name) {
+    name = (name || '').trim();
+    if (!name) return null;
+    if (DEFAULT_FOLDERS.includes(name)) return name;
+    const custom = getCustomFolders();
+    if (!custom.includes(name)) {
+      custom.push(name);
+      setCustomFolders(custom);
+    }
+    return name;
+  }
+
+  function removeFolder(name) {
+    if (DEFAULT_FOLDERS.includes(name)) {
+      toast(`"${name}" is a default folder`, 'error'); return false;
+    }
+    const plays = getPlays();
+    const inFolder = Object.values(plays).filter(p => p.folder === name);
+    if (inFolder.length > 0 && !confirm(`Delete folder "${name}" and its ${inFolder.length} play(s)?`)) return false;
+    inFolder.forEach(p => delete plays[p.title]);
+    setPlays(plays);
+    setCustomFolders(getCustomFolders().filter(f => f !== name));
+    return true;
+  }
+
+  function refreshFolderDropdown() {
+    const sel = document.getElementById('folderSelect');
+    const current = sel.value;
+    sel.innerHTML = '';
+    getFolders().forEach(f => {
+      const o = document.createElement('option');
+      o.value = f;
+      o.textContent = f;
+      sel.appendChild(o);
+    });
+    if (current && Array.from(sel.options).some(o => o.value === current)) {
+      sel.value = current;
+    }
+  }
+
+  function refreshPlaybook() {
+    const wrap = document.getElementById('playbook');
+    wrap.innerHTML = '';
+    const plays = getPlays();
+    const folders = getFolders();
+    if (folders.length === 0 || (Object.keys(plays).length === 0 && getCustomFolders().length === 0)) {
+      // still show default folders even when empty
+    }
+    folders.forEach(folder => {
+      const playsInFolder = Object.values(plays)
+        .filter(p => (p.folder || 'Offense') === folder)
+        .sort((a, b) => a.title.localeCompare(b.title));
+
+      const fdiv = document.createElement('div');
+      fdiv.className = 'folder';
+
+      const header = document.createElement('div');
+      header.className = 'folder-header';
+      const headerLabel = document.createElement('span');
+      headerLabel.innerHTML = `${folder} <span class="count">· ${playsInFolder.length}</span>`;
+      header.appendChild(headerLabel);
+      const actions = document.createElement('div');
+      actions.className = 'folder-actions';
+      if (!DEFAULT_FOLDERS.includes(folder)) {
+        const del = document.createElement('button');
+        del.className = 'small-btn danger';
+        del.textContent = '×';
+        del.title = 'Delete folder';
+        del.addEventListener('click', () => {
+          if (removeFolder(folder)) {
+            refreshFolderDropdown();
+            refreshPlaybook();
+            toast(`Deleted folder "${folder}"`);
+          }
+        });
+        actions.appendChild(del);
+      }
+      header.appendChild(actions);
+      fdiv.appendChild(header);
+
+      if (playsInFolder.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'folder-empty';
+        empty.textContent = 'No plays yet';
+        fdiv.appendChild(empty);
+      } else {
+        playsInFolder.forEach(play => {
+          const item = document.createElement('div');
+          item.className = 'play-item';
+          const labelWrap = document.createElement('div');
+          const label = document.createElement('div');
+          label.textContent = play.title;
+          const meta = document.createElement('div');
+          meta.className = 'meta';
+          meta.textContent = `${play.steps.length} step${play.steps.length === 1 ? '' : 's'}`;
+          labelWrap.appendChild(label);
+          labelWrap.appendChild(meta);
+          item.appendChild(labelWrap);
+
+          const controls = document.createElement('div');
+          controls.className = 'controls';
+          const del = document.createElement('button');
+          del.className = 'small-btn danger';
+          del.textContent = '×';
+          del.title = 'Delete play';
+          del.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (!confirm(`Delete "${play.title}"?`)) return;
+            const all = getPlays();
+            delete all[play.title];
+            setPlays(all);
+            refreshPlaybook();
+            toast(`Deleted "${play.title}"`);
+          });
+          controls.appendChild(del);
+          item.appendChild(controls);
+
+          item.addEventListener('click', () => loadPlay(play.title));
+          fdiv.appendChild(item);
+        });
+      }
+      wrap.appendChild(fdiv);
+    });
+  }
+
+  function savePlay() {
+    const name = (document.getElementById('title').value || '').trim();
+    if (!name) { toast('Name your play first', 'error'); return; }
+    if (state.steps.length === 0) { toast('Capture at least 1 step', 'error'); return; }
+    const folder = document.getElementById('folderSelect').value || 'Offense';
+    const plays = getPlays();
+    plays[name] = { title: name, folder, steps: state.steps, savedAt: Date.now() };
+    setPlays(plays);
+    refreshPlaybook();
+    toast(`Saved "${name}" to ${folder}`, 'success');
+  }
+
+  function loadPlay(name) {
+    const plays = getPlays();
+    if (!plays[name]) return;
+    if (state.isPlaying) stopPlay();
+    state.steps = clone(plays[name].steps);
+    state.activeStep = 0;
+    state.pendingPaths = {};
+    document.getElementById('title').value = name;
+    if (plays[name].folder) {
+      const sel = document.getElementById('folderSelect');
+      if (Array.from(sel.options).some(o => o.value === plays[name].folder)) {
+        sel.value = plays[name].folder;
+      }
+    }
+    if (state.steps.length) loadStep(0);
+    else renderAll();
+    toast(`Loaded "${name}"`, 'success');
+  }
+
+  function startNewPlay() {
+    if (state.isPlaying) stopPlay();
+    document.getElementById('title').value = '';
+    state.steps = [];
+    state.activeStep = -1;
+    state.pendingPaths = {};
+    state.entities = clone(STARTING);
+    state.ballHolder = detectBallHolder();
+    renderAll();
+    toast('New play');
+  }
+
+  function resetPositions() {
+    pushHistory();
+    if (state.isPlaying) stopPlay();
+    state.entities = clone(STARTING);
+    state.activeStep = -1;
+    state.pendingPaths = {};
+    state.ballHolder = detectBallHolder();
+    renderAll();
+    toast('Positions reset');
+  }
+
+  // ---------- Toast ----------
+  function toast(msg, kind) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = 'toast show ' + (kind || '');
+    clearTimeout(toast._tid);
+    toast._tid = setTimeout(() => { t.className = 'toast ' + (kind || ''); }, 1800);
+  }
+
+  // ---------- Wire up ----------
+  document.getElementById('captureBtn').addEventListener('click', captureStep);
+  document.getElementById('undoBtn').addEventListener('click', undo);
+  document.getElementById('playBtn').addEventListener('click', () => {
+    if (state.isPlaying) stopPlay(); else play();
+  });
+  document.getElementById('resetBtn').addEventListener('click', resetPositions);
+  document.getElementById('saveBtn').addEventListener('click', savePlay);
+  document.getElementById('newPlayBtn').addEventListener('click', startNewPlay);
+  document.getElementById('newFolderBtn').addEventListener('click', () => {
+    const name = (prompt('New folder name:') || '').trim();
+    if (!name) return;
+    addFolder(name);
+    refreshFolderDropdown();
+    refreshPlaybook();
+    document.getElementById('folderSelect').value = name;
+    toast(`Folder "${name}" created`, 'success');
+  });
+  document.getElementById('defenseToggle').addEventListener('change', (e) => {
+    state.showDefense = e.target.checked;
+    renderAll();
+  });
+  document.getElementById('speedRange').addEventListener('input', (e) => {
+    state.speed = parseFloat(e.target.value);
+    document.getElementById('speedLabel').textContent = state.speed.toFixed(1) + '×';
+  });
+
+  // Keyboard: space to play/pause, N for new step
+  window.addEventListener('keydown', (e) => {
+    if (e.target.matches('input, select, textarea')) return;
+    if (e.code === 'Space') {
+      e.preventDefault();
+      if (state.isPlaying) stopPlay(); else play();
+    } else if (e.key === 'n' || e.key === 'N') {
+      captureStep();
+    } else if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+      e.preventDefault();
+      undo();
+    }
+  });
+
+  refreshFolderDropdown();
+  refreshPlaybook();
+  state.ballHolder = detectBallHolder();
+  renderAll();
+  updateUndoBtn();
+})();
+</script>
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  }
+</script>
+</body>
+</html>
